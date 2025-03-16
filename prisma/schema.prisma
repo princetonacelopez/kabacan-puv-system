@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(ENFORCER)
+  violations Violation[]
+  auditLogs AuditTrail[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vehicle {
+  id          Int      @id @default(autoincrement())
+  plateNumber String   @unique
+  type        VehicleType @default(MULTICAB)
+  ownerName   String
+  ownerContact String?
+  violations  Violation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Violation {
+  id          Int      @id @default(autoincrement())
+  vehicleId   Int
+  enforcerId  Int
+  violationType ViolationType @default(TERMINAL_FEE)
+  fineAmount  Float
+  dateIssued  DateTime @default(now())
+  description String?
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  enforcer    User     @relation(fields: [enforcerId], references: [id])
+  payment     Payment?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  violationId Int      @unique
+  amountPaid  Float    @default(0)
+  status      PaymentStatus @default(UNPAID)
+  paymentDate DateTime?
+  violation   Violation @relation(fields: [violationId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditTrail {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String
+  details     String?
+  timestamp   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  ENFORCER
+}
+
+enum VehicleType {
+  MULTICAB
+  VAN
+}
+
+enum ViolationType {
+  TERMINAL_FEE
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
